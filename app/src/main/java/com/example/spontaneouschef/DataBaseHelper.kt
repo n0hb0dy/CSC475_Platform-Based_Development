@@ -8,23 +8,25 @@ import android.database.sqlite.SQLiteOpenHelper
 import java.text.SimpleDateFormat
 import java.util.Date
 
-val DATABASE_NAME = "RecipeDB"
-val PREF_TABLE = "preferences"
-val DAYSTREAK_TABLE = "daystreak"
-val DISHESCOMPLETE_TABLE = "dishescompleted"
-val COL_INTOLERANCES = "Intolerences"
-val COL_CALORIES = "MaxCalories"
-val COL_CARBS = "MaxCarbs"
-val COL_SUGAR = "MaxSugar"
-val COL_SODIUM = "MaxSodium"
-val COL_DAYS = "Days"
-val COL_ACTIVESTATUS = "ActiveStatus"
-val COL_LASTLOCKINDATE = "LastLockinDate"
-val COL_DISHID = "DishID"
-val COL_DISHNAME = "DishName"
+const val DATABASE_NAME = "RecipeDB"
+const val PREF_TABLE = "preferences"
+const val DAYSTREAK_TABLE = "daystreak"
+const val DISHESCOMPLETE_TABLE = "dishescompleted"
+const val COL_INTOLERANCES = "Intolerences"
+const val COL_CALORIES = "MaxCalories"
+const val COL_CARBS = "MaxCarbs"
+const val COL_SUGAR = "MaxSugar"
+const val COL_SODIUM = "MaxSodium"
+const val COL_DAYS = "Days"
+const val COL_ACTIVESTATUS = "ActiveStatus"
+const val COL_LASTLOCKINDATE = "LastLockinDate"
+const val COL_DISHID = "DishID"
+const val COL_DISHNAME = "DishName"
+const val COL_INGREDIENTS = "Ingredients"
+const val COL_INSTRUCTIONS = "Instructions"
 
 class DataBaseHelper(context: Context?) :
-    SQLiteOpenHelper(context, DATABASE_NAME, null, 2){
+    SQLiteOpenHelper(context, DATABASE_NAME, null, 5){
 
     override fun onCreate(db: SQLiteDatabase?) {
         val createPrefTable = "CREATE TABLE " + PREF_TABLE +
@@ -41,7 +43,9 @@ class DataBaseHelper(context: Context?) :
 
         val createDishesCompletedTable = "CREATE TABLE " + DISHESCOMPLETE_TABLE +
                                             " (" + COL_DISHID + " INTEGER PRIMARY KEY, " +
-                                            COL_DISHNAME + " TEXT);"
+                                            COL_DISHNAME + " TEXT, " +
+                                            COL_INGREDIENTS + " TEXT, " +
+                                            COL_INSTRUCTIONS + " TEXT);"
 
         db?.execSQL(createPrefTable)
         db?.execSQL(createDaystreakTable)
@@ -82,12 +86,14 @@ class DataBaseHelper(context: Context?) :
         db.insert(DAYSTREAK_TABLE, null, values)
     }
 
-    fun setDishesCompleted(dishID: String, dishName: String){
+    fun setDishesCompleted(dishID: String, dishName: String, ingredients: String, instructions: String){
         val db: SQLiteDatabase = this.writableDatabase
         val values: ContentValues = ContentValues()
 
         values.put(COL_DISHID, dishID)
         values.put(COL_DISHNAME, dishName)
+        values.put(COL_INGREDIENTS, ingredients)
+        values.put(COL_INSTRUCTIONS, instructions)
 
         db.insert(DISHESCOMPLETE_TABLE, null, values)
     }
@@ -95,7 +101,7 @@ class DataBaseHelper(context: Context?) :
     @SuppressLint("Range")
     fun getPreferences() : Preferences? {
         val db: SQLiteDatabase = this.readableDatabase
-        //setPreferences("", 9999, 9999, 9999, 9999)
+        setPreferences("", 9999, 9999, 9999, 9999)
         val cursor = db.rawQuery("SELECT * FROM $PREF_TABLE LIMIT 1", null)
         var currentPreferences: Preferences? = null
         cursor.moveToFirst()
@@ -122,43 +128,42 @@ class DataBaseHelper(context: Context?) :
     @SuppressLint("SimpleDateFormat")
     fun getDayStreak() : DayStreak? {
         val db: SQLiteDatabase = this.readableDatabase
-        //setDayStreak("", "true", SimpleDateFormat("dd/M/yyyy").format(Date()))
+        setDayStreak("", "true", SimpleDateFormat("dd/M/yyyy").format(Date()))
         val cursor =db.rawQuery("SELECT * FROM $DAYSTREAK_TABLE LIMIT 1", null)
-        var currentPreferences: DayStreak? = null
+        var currentDayStreak: DayStreak? = null
 
-        if (cursor.moveToFirst()){
+        if (cursor.moveToNext()){
             val days = cursor.getInt(cursor.getColumnIndexOrThrow(COL_DAYS))
             val activeStatus = cursor.getInt(cursor.getColumnIndexOrThrow(COL_ACTIVESTATUS))
             val lastLockinDate = cursor.getString(cursor.getColumnIndexOrThrow(COL_LASTLOCKINDATE))
 
-
-            currentPreferences = DayStreak(days, activeStatus, lastLockinDate)
+            currentDayStreak = DayStreak(days, activeStatus, lastLockinDate)
 
         }
 
         cursor.close()
         db.close()
 
-        return currentPreferences
+        return currentDayStreak
     }
 
     fun getDishesCompleted() : ArrayList<DishesCompleted> {
         val db: SQLiteDatabase = this.readableDatabase
-        val cursor =db.rawQuery("SELECT * FROM $DISHESCOMPLETE_TABLE", null)
-        val currentPreferences: ArrayList<DishesCompleted> = ArrayList()
+        val cursor = db.rawQuery("SELECT * FROM $DISHESCOMPLETE_TABLE", null)
+        val currentDishesCompleted: ArrayList<DishesCompleted> = ArrayList()
 
         while (cursor.moveToNext()){
             val dishID = cursor.getInt(cursor.getColumnIndexOrThrow(COL_DISHID))
             val dishName = cursor.getString(cursor.getColumnIndexOrThrow(COL_DISHNAME))
+            val ingredients = cursor.getString(cursor.getColumnIndexOrThrow(COL_INGREDIENTS))
+            val instructions = cursor.getString(cursor.getColumnIndexOrThrow(COL_INSTRUCTIONS))
 
-            currentPreferences.add(DishesCompleted(dishID, dishName))
+            currentDishesCompleted.add(DishesCompleted(dishID, dishName, ingredients, instructions))
         }
 
         cursor.close()
         db.close()
 
-        return currentPreferences
+        return currentDishesCompleted
     }
-
-
 }

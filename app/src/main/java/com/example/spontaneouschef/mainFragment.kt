@@ -12,13 +12,14 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
 
 
 const val BASE_URL = "https://www.themealdb.com/"
@@ -31,6 +32,7 @@ class mainFragment : Fragment() {
     private lateinit var dataBaseHelper: DataBaseHelper
     private lateinit var preferences: Preferences
 
+    @SuppressLint("SimpleDateFormat")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -57,15 +59,15 @@ class mainFragment : Fragment() {
         }
 
         lockinButton.setOnClickListener{
+            val currentDayStreak = (dataBaseHelper.getDayStreak()?.days ?: 0) + 1
+            dataBaseHelper.setDayStreak("$currentDayStreak",
+                "true", SimpleDateFormat("dd/M/yyyy").format(Date()))
             findNavController().navigate(R.id.action_mainFragment_to_detailsFragment)
         }
 
         rerollButton.setOnClickListener{
             getRandomDish(image, textName, textParagraph, ingredientsDetails, instructionsDetails)
         }
-
-
-        //image.setImageURI()
 
         return view
     }
@@ -81,7 +83,7 @@ class mainFragment : Fragment() {
         val retrofitData = retrofitBuilder.getRandomRecipe()
         retrofitData.enqueue(object: Callback<MealDBBody>{
             @SuppressLint("SetTextI18n")
-            override fun onResponse(call: Call<MealDBBody>, response: Response<MealDBBody>) {
+            override fun onResponse(call: Call<MealDBBody>, response: Response<MealDBBody>){
                 val mealBody: MealDBBody = response.body()!!
                 val dish = mealBody.meals[0]
 
@@ -98,6 +100,9 @@ class mainFragment : Fragment() {
                                             ">${dish.strIngredient9}\n>${dish.strIngredient10}\n>"
 
                 instructionsDetails.text = dish.strInstructions
+
+                dataBaseHelper.setDishesCompleted(dish.idMeal, dish.strMeal,
+                    dish.strIngredient1, dish.strInstructions)
             }
 
             override fun onFailure(call: Call<MealDBBody>, t: Throwable) {
